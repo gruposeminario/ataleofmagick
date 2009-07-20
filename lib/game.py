@@ -9,8 +9,9 @@ Created by C on 2009-07-11.
 from os import environ
 import pygame
 from pygame.locals import * 
+from scene import WorldScene
 from character import Character
-
+from maptool  import Map
 """
 Set some globals here
 Eventually should migrate to a config file
@@ -32,15 +33,26 @@ class Game(object):
     self.__exitGame()
 
   def __initGame(self):
+    """ Probably going to be a good idea to move the majority of these configs to a config file 
+    ...soon as I create a ini object """
     environ['SDL_VIDEO_CENTERED'] = '1'
     pygame.init()
     self.running = True
     self.fullscreen = False
     self.screen = pygame.display.set_mode(SCREEN_SIZE, self.fullscreen, COLOR_DEPTH)
     pygame.display.set_caption(GAME_NAME)
-    pygame.mouse.set_visible(True)
-    self.mainCharacter = Character(self.screen, [200, 200])   
-    
+    pygame.mouse.set_visible(False)
+
+    collisionlist = []
+
+    """ Set the Starting Scene """
+    self.mainCharacter = Character("Hero")
+
+    """ Create the World """
+    self.World = WorldScene(self.screen)
+    self.World.addCharacter(self.mainCharacter)
+    self.World.setMap(SCREEN_SIZE, (16, 16), "C")
+
   def __checkEvents(self):
     for event in pygame.event.get():
       if event.type == QUIT:
@@ -52,6 +64,11 @@ class Game(object):
           
         elif event.key == K_f:
           pygame.display.toggle_fullscreen()
+
+        elif event.key == K_a:
+          self.World.addCharacter(self.mainCharacter)
+        elif event.key == K_c:
+          self.World.removeCharacter(self.mainCharacter)
           
         elif event.key in(K_DOWN, K_UP, K_LEFT, K_RIGHT):
           self.mainCharacter.move_keys.append(pygame.key.name(event.key))
@@ -70,9 +87,8 @@ class Game(object):
     pass
     
   def __renderScreen(self):
-    """docstring for renderScreen"""   
-    self.mainCharacter.update()
-    pass
+    """ Update the Current Game World """
+    self.World.update()
     
   def __exitGame(self):
     """docstring for __exitGame"""

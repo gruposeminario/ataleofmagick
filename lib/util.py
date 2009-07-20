@@ -12,14 +12,21 @@ from pygame.locals import *
 
 # Resource loading:
 DATA_PY = path.abspath(path.dirname(__file__))
-DATA_DIR = path.normpath(path.join(DATA_PY, '..', 'data')) 
+DATA_DIR = path.normpath(path.join(DATA_PY, '..', 'data/sprites/')) 
 
 class load_sprite:
     """
     Load a moving object from a spritesheet.
     """
-    def __init__(self, filename):
-        self.sheet = pygame.image.load(path.join(DATA_DIR, 'sprites', filename))
+    def __init__(self, type, filename):
+        print "Loading: ", path.join(DATA_DIR, type, filename)
+        self.sheet = pygame.image.load(path.join(DATA_DIR, type, filename))
+
+    def get_width(self):
+      return self.sheet.get_width()
+
+    def get_height(self):
+      return self.sheet.get_height()
         
     def image(self, rect, colorkey = None, alpha = False):
         rect = Rect(rect)
@@ -40,8 +47,12 @@ class load_sprite:
             imgs.append(self.image(rect, colorkey))
         return imgs
 
-    def load_tile(self, filename):
-      img = path.join(DATA_DIR, 'tile', filename + '.png')
-      return pygame.image.load(img).convert_alpha()
     
+class load_tiles(load_sprite):
+  def __init__(self, filename):
+    load_sprite.__init__(self, "tiles", filename)
+
+class load_character(load_sprite):
+  def __init__(self, filename):
+    load_sprite.__init__(self, "characters", filename)
 

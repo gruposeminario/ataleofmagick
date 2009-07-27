@@ -1,5 +1,5 @@
 
-import csv, os
+import csv, os, ConfigParser
 import pygame
 from pygame.locals import *
 from util import load_tiles
@@ -11,27 +11,12 @@ DATA_DIR = os.path.normpath(os.path.join(DATA_PY, '..', 'data/maps/'))
 
 class Map(object):
 
-  """
-    dimensions      = screen x,y
-    tiledimensions  = tilesheet invidual tile x,y
-    tileMap         = holder for csv data
-  """
-  dimensions = ()
-  tiledimensions = ()
-  mapname = ""
+  def __init__(self, mapname):
 
-  tileMap = []
-
-  def __init__(self, dimensions, tiledimensions, mapname):
-    self.dimensions = dimensions
-    self.tiledimensions = tiledimensions
     self.mapname = mapname
-
-    """ 
-      Determine how many tiles should be to a row
-      ( SCREENWIDTH / TileWidth )
-    """
-    self.__tiles_per_row = dimensions[0] / self.tiledimensions[0]
+    self.tilesheetdimensions = []
+    self.map = {}
+    self.tileMap = []
 
     """ Attempt to parse the map data """
     self.__read()
@@ -41,7 +26,24 @@ class Map(object):
     Parse the data out and move to a dict
   """
   def __read(self):
-    mapfile = os.path.join(DATA_DIR + "/" + self.mapname + ".MAP")
+    self.map_config = ConfigParser.RawConfigParser()
+    self.map_config.read(os.path.join(DATA_DIR, self.mapname + ".ini"))
+    width   = self.map_config.getint("dimensions", "width")
+    height  = self.map_config.getint("dimensions", "height")
+    tilewidth   = self.map_config.getint("dimensions", "tilewidth")
+    tileheight  = self.map_config.getint("dimensions", "tileheight")
+
+    """ Set the tile dimensions and dimensions of the map """
+    self.dimensions     = (width, height)
+    self.tiledimensions = (tilewidth, tileheight)
+
+    """ 
+      Determine how many tiles should be to a row
+      ( SCREENWIDTH / TileWidth )
+    """
+    self.__tiles_per_row = self.dimensions[0] / self.tiledimensions[0]
+
+    mapfile = os.path.join(DATA_DIR, self.mapname + ".MAP")
     reader = csv.reader(open(mapfile, "rb"), skipinitialspace=True)
     """ 
       At this point we need to take the map data and transform it
@@ -63,18 +65,19 @@ class Map(object):
       
   def __draw(self):
     """docstring for draw"""
-    layer = MapLayer(self.dimensions)
+    layer = MapLayer((self.dimensions[0], self.dimensions[1]))
     tilesheet = load_tiles(self.mapname + ".BMP")
-    tilesheetdimensions = ( tilesheet.get_width(), tilesheet.get_height() )
+    self.tilesheetdimensions = ( tilesheet.get_width(), tilesheet.get_height() )
     y = 0
-    for line in Map.tileMap:
+    for line in self.tileMap:
       """ Each new line """
       x = 0
       for tile in line:
        """ Each tile """
-       tiles_per_row = ( tilesheetdimensions[0] / self.tiledimensions[0] )
-       tiley = ceil( float(tile) / float(tiles_per_row) ) - 1
-       image = tilesheet.image([(int(tile)*self.tiledimensions[0]), tiley, self.tiledimensions[0], self.tiledimensions[1]])
+       tiles_per_row = ( self.tilesheetdimensions[0] / self.tiledimensions[0] )
+       tiley = ( ceil( float(tile) / float(tiles_per_row) ) - 1 ) * self.tiledimensions[1]
+       tilex = ( (int(tile) % tiles_per_row) * self.tiledimensions[0] )
+       image = tilesheet.image([tilex, tiley, self.tiledimensions[0], self.tiledimensions[1]])
        layer.image.blit(image, (x,y))
        x += self.tiledimensions[0]
       y += self.tiledimensions[1]
@@ -95,3 +98,5 @@ class MapLayer(pygame.sprite.DirtySprite):
         self.image = pygame.Surface(self.dimensions, SRCALPHA, 32).convert_alpha()
         self.rect = self.image.get_rect()
 
+    def __str__(self):
+      return "Map Dimensions: " + str(self.image.get_width()) + " x " + str(self.image.get_height())

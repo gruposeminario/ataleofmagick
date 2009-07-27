@@ -13,13 +13,13 @@ from pygame.locals import *
 # Resource loading:
 DATA_PY = path.abspath(path.dirname(__file__))
 DATA_DIR = path.normpath(path.join(DATA_PY, '..', 'data/sprites/')) 
+IMAGE_DATA_DIR = path.normpath(path.join(DATA_PY, '..', 'data/images/')) 
 
 class load_sprite:
     """
     Load a moving object from a spritesheet.
     """
     def __init__(self, type, filename):
-        print "Loading: ", path.join(DATA_DIR, type, filename)
         self.sheet = pygame.image.load(path.join(DATA_DIR, type, filename))
 
     def get_width(self):
@@ -55,4 +55,16 @@ class load_tiles(load_sprite):
 class load_character(load_sprite):
   def __init__(self, filename):
     load_sprite.__init__(self, "characters", filename)
+
+def load_image(file_name, colorkey=False):
+  file = path.join(IMAGE_DATA_DIR, file_name)
+  _image = pygame.image.load(file)
+  if colorkey:
+    if colorkey == -1:
+      colorkey = _image.get_at((0, 0))
+    _image.set_colorkey(colorkey)
+    _image = _image.convert()
+  else:
+    _image = _image.convert_alpha()
+  return _image
 

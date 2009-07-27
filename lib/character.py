@@ -10,6 +10,9 @@ import pygame
 from pygame.locals import *
 from util import load_character
 
+""" Global Config """
+from globals import *
+
 # Resource loading:
 DATA_PY = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.normpath(os.path.join(DATA_PY, '..', 'data/characters/')) 
@@ -17,16 +20,22 @@ DATA_DIR = os.path.normpath(os.path.join(DATA_PY, '..', 'data/characters/'))
 """ A generic character class for a sprite based character """
 class Character(pygame.sprite.DirtySprite):
   
-  def __init__(self, name):
+  def __init__(self, name, collidelist):
     pygame.sprite.DirtySprite.__init__(self)
     self.name = name
+    self.collidelist = collidelist
+    self.camera_moving = {
+      "up"    : False,
+      "down"  : False,
+      "right" : False,
+      "left"  : False
+    }
     """ Parse Data from Character's Config File """ 
     self.character_config = ConfigParser.RawConfigParser()
     self.character_config.read(os.path.join(DATA_DIR, self.name + ".ini"))
+    self.stats = {}
     self.__parsedata()
 
-    self.stats = {}
-    self.__parsestats()
 
     """ Set positional images """
     self.north = self.sprite.images([
@@ -54,16 +63,23 @@ class Character(pygame.sprite.DirtySprite):
       ], -1
     )
     self.walking = {
-          'up': self.north,
-          'down': self.south,
-          'right': self.east,
-          'left': self.west
+          'up'    : self.north,
+          'down'  : self.south,
+          'right' : self.east,
+          'left'  : self.west
     }
+
+    """ Set sprite's images"""
     self.image = self.walking[self.direction][self.frame]
     self.rect = self.image.get_rect(left=self.x, top=self.y)
-    self.collide_surface = pygame.Surface((11,6))
-    self.collide_rect = self.collide_surface.get_rect(
-        left=self.rect.left + 11, bottom=self.rect.bottom)
+
+    """ Collide Rectangle """
+    self.collide_surface = pygame.Surface((self.width, self.height))
+    self.collide_rect = self.collide_surface.get_rect(left=self.x, top=self.y)
+
+    """ Camera Rectangle """
+    self.camera_surface = pygame.Surface((self.width+G["camera_width"], self.height+G["camera_height"]))
+    self.camera_rect    = self.camera_surface.get_rect(center=(self.x+self.width,self.y+self.height))
 
   def getStat(self, stat):
     return self.stats[stat]
@@ -83,45 +99,105 @@ class Character(pygame.sprite.DirtySprite):
     self.movementspeed                      = self.character_config.getint("config", "movement_speed")
     self.frame                              = self.character_config.getint("config", "start_frame")
     self.direction                          = self.character_config.get("config", "direction")
+    
+    """ Parse character stats """
+    self.__parsestats()
 
     """ Non config file related settings """
     self.stop = True
     self.move_keys = []
     self.animcounter = 0
-  
-  def get_movement_coord(self):
-    if self.direction == "up":
-      self.y = self.y - self.movementspeed
-    if self.direction == "down":
-      self.y = self.y + self.movementspeed
-    if self.direction == "right":
-      self.x = self.x + self.movementspeed
-    if self.direction == "left":
-      self.x = self.x - self.movementspeed
-    return ( self.x, self.y )
-  
-  def draw(self):
-    self.animcounter = (self.animcounter + 1) % self.animspeed
-    if self.animcounter == 0:
-      self.frame  = (self.frame + 1) % (len(self.walking[self.direction]))
-    self.position = self.get_movement_coord()
-    self.image = self.walking[self.direction][self.frame]
-    self.rect = self.image.get_rect(left=self.x, top=self.y)
+    self.collision = {}
+    self.edge_collision = {}
 
-  def move_check(self):
-    pass
-  
+  """ Return the Camera View of the Sprite """
+  def getCamera(self):
+    return self.camera_rect
+
+  def update_movement_coord(self):
+    x, y = self.x, self.y
+    """ Check for the Camera """
+    if self.camera_moving[self.direction] == True:
+      return (x, y)
+    if self.direction == "up":
+      y = self.y - self.movementspeed
+    if self.direction == "down":
+      y = self.y + self.movementspeed
+    if self.direction == "right":
+      x = self.x + self.movementspeed
+    if self.direction == "left":
+      x = self.x - self.movementspeed
+    return (x, y)
+
+  """ Draw character sprite """
+  def draw(self):
+    if self.collision[self.direction] == False and self.edge_collision[self.direction] == False:
+      self.animcounter = (self.animcounter + 1) % self.animspeed
+      if self.animcounter == 0:
+        self.frame  = (self.frame + 1) % (len(self.walking[self.direction]))
+      coords            = self.update_movement_coord()
+      self.x, self.y    = coords[0], coords[1]
+      self.image        = self.walking[self.direction][self.frame]
+      """ Update Hero Rect """
+      self.rect         = self.image.get_rect(left=self.x, top=self.y)
+      """ Update collision rectangle """
+      self.collide_rect = self.collide_surface.get_rect(left=self.x, top=self.y)
+      """ Update the camera's rectangle """
+      self.camera_rect    = self.camera_surface.get_rect(center=(self.x+self.width,self.y+self.height))
+
+  """ Not sure what the needs are for moving a npc yet """
+  def stop_move(self):
+    self.stop   = True
+    self.frame  = 0
+    self.dirty  = 1
+
   def update(self):
     self.animspeed = 4
     if not self.stop:
      self.move_check()
      self.draw()
     else:
-     self.frame = 0
-     self.dirty = 1
-
-
+     self.stop_move()
       
+  """ Need to check preemptively for direction that the rect will move to """
+  def move_check(self):
+    directions = {
+        'up': self.collide_rect.move(0,-self.movementspeed),
+        'down': self.collide_rect.move(0,self.movementspeed),
+        'left': self.collide_rect.move(-self.movementspeed,0),
+        'right': self.collide_rect.move(self.movementspeed,0) 
+    }
+    for direction, rect in directions.iteritems():
+      self.check_edge(direction, rect)
+      self.check_collide_npc(direction, rect)
 
+  def check_edge(self, direction, rect):
+    sprite_left   = rect.midleft[0]
+    sprite_right  = rect.midright[0]
+    sprite_top    = rect.midtop[1]
+    sprite_bottom = rect.midbottom[1]
 
+    if sprite_left <= 0 or sprite_top <= 0 or sprite_right >= (G["screen_width"] - 10) or sprite_bottom >= (G["screen_height"] - 10):
+      self.image = self.walking[self.direction][self.frame]
+      self.edge_collision[direction] = True
+      if self.edge_collision[self.direction] == True:
+        self.stop_move()
+    else:
+      self.edge_collision[direction] = False
 
+  """ Check Collisions against NPC Objects """
+  def check_collide_npc(self, direction, rect):
+    if rect.collidelistall(self.collidelist) != []:
+      """ Face object if a collision is found but don't move """
+      self.image = self.walking[direction][self.frame]
+      self.collision[direction] = True
+      if self.collision[self.direction] == True:
+        self.stop_move()
+    else:
+      self.collision[direction] = False
+
+""" Define a Hero (Player) Character """
+""" Migrate to a Hero Class """
+class Hero(Character):
+  def __init__(self, name, collidelist):
+    Character.__init__(self, name, collidelist)

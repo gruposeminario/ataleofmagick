@@ -6,7 +6,7 @@ game.py
 Created by C on 2009-07-11.
 """
 
-import pygame, os
+import pygame, os, time
 from sys import exit
 from pygame.locals import * 
 from text import Text
@@ -47,8 +47,60 @@ class Menu(object):
     if self.current_option < 0:
       self.current_option = len(self.MenuOptions) - 1
 
+  def update(self):
+    self.display.blit(self.background, (0,0)) 
+    self.draw()
+    pygame.display.update()
+
+  """ Run the Display For The Menu """
+  def run(self):
+    while self.active == True:
+      self.checkEvents()
+      self.handleSelection()
+      self.update()
+
+  def transition(self, menu):
+    self.fade_out()
+    menu.run()
+
+  def fade_in(self):
+    alpha, timer = 255, 0
+    white = pygame.Surface((G["screen_width"], G["screen_height"]))
+    white.fill((255,255,255))
+
+    while alpha > 0:
+      timer -= 1
+      if timer <= 0:
+        timer = 10
+        alpha -= 35
+      white.set_alpha(alpha)
+      self.update()
+      self.display.blit(white, (0,0))
+      pygame.display.update()
+
+  def fade_out(self):
+    alpha, timer = 255, 0
+    backup = pygame.display.get_surface().copy()
+    white = pygame.Surface((G["screen_width"], G["screen_height"]))
+    white.fill((255,255,255))
+
+    while alpha > 0:
+      timer -= 1
+      if timer <= 0:
+        timer = 10
+        alpha -= 35
+      backup.set_alpha(alpha)
+      self.display.blit(white, (0,0))
+      self.display.blit(backup, (0,0))
+      pygame.display.update()
+
+
   """ Meant to be Overloaded """
-  def __handleSelection(self):
+  def draw(self):
+    pass
+
+  """ Meant to be Overloaded """
+  def handleSelection(self):
     pass
 
 """ A Blank Menu """
@@ -64,26 +116,17 @@ class BlankMenu(Menu):
     self.background = load_image("ATOM.png")
     self.MenuOptions = ["Go Back"]
 
-  """ Run the Display For The Menu """
-  def run(self):
-    while self.active == True:
-      self.display.blit(self.background, (0,0)) 
-      self.checkEvents()
-      self.__handleSelection()
-      self.__draw()
-      pygame.display.flip()
   
   """ Handle Selection """
-  def __handleSelection(self):
+  def handleSelection(self):
     if isinstance(self.selection, int):
 
       """ Load Game Menu """
       if self.selection == 0:
         self.active = False
 
-
   """ Draw the Menu """
-  def __draw(self):
+  def draw(self):
     y = self.y
 
     text = Text("[Not Yet Implemented]", 18, "GameOption", (255, 255, 255))
@@ -114,17 +157,8 @@ class MainMenu(Menu):
     self.background = load_image("ATOM.png")
     self.MenuOptions = ["Begin Adventure", "Load Adventure", "Settings", "Quit"]
 
-  """ Run the Display For The Menu """
-  def run(self):
-    self.display.blit(self.background, (0,0)) 
-    self.checkEvents()
-    self.__handleSelection()
-    self.__draw()
-    pygame.display.flip()
-
-
   """ Handle Selection """
-  def __handleSelection(self):
+  def handleSelection(self):
     if isinstance(self.selection, int):
 
       """ Start Game """
@@ -135,7 +169,7 @@ class MainMenu(Menu):
       if self.selection == 1:
         self.selection = ""
         NoMenu = BlankMenu(self.display)
-        NoMenu.run()
+        self.transition(NoMenu)
   
       """ Settings """
       if self.selection == 2:
@@ -148,7 +182,7 @@ class MainMenu(Menu):
         exit()
 
   """ Draw the Menu """
-  def __draw(self):
+  def draw(self):
     y = self.y
 
     text = Text("A Game Developed By: Chris A.W.", 18, "GameOption", (255, 255, 255))

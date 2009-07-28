@@ -10,7 +10,7 @@ from os import environ
 import pygame
 from pygame.locals import * 
 from scene import WorldScene
-from character import Character, Hero
+from hero import Hero
 from map import Map
 from menu import MainMenu
 
@@ -49,6 +49,7 @@ class Game(object):
   def __checkEvents(self):
 
     if self.GameMenu.selection == 0:
+
       for event in pygame.event.get():
 
         if event.type == QUIT:
@@ -86,7 +87,11 @@ class Game(object):
               self.mainCharacter.stop = True
 
   def __renderScreen(self):
-    """ Display the Game's Main Menu, until a option is selected """
+    """ 
+    Display the Game's Main Menu, until a option is selected 
+    This is going to need to change
+    the menu needs to be one just for the main screen 
+    """
     if self.GameMenu.active == True:
       self.GameMenu.run()
     

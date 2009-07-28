@@ -30,12 +30,12 @@ class Character(pygame.sprite.DirtySprite):
       "right" : False,
       "left"  : False
     }
+
     """ Parse Data from Character's Config File """ 
     self.character_config = ConfigParser.RawConfigParser()
     self.character_config.read(os.path.join(DATA_DIR, self.name + ".ini"))
     self.stats = {}
     self.__parsedata()
-
 
     """ Set positional images """
     self.north = self.sprite.images([
@@ -67,6 +67,18 @@ class Character(pygame.sprite.DirtySprite):
           'down'  : self.south,
           'right' : self.east,
           'left'  : self.west
+    }
+
+    """ Equipment for the character """
+    self.equipment = {
+      "Helmet"      : ""
+      "Body"        : ""
+      "LeftHand"    : ""
+      "RightHand"   : ""
+      "Legs"        : ""
+      "LeftFinger"  : ""
+      "RightFinger" : ""
+      "Necklace"    : ""
     }
 
     """ Set sprite's images"""
@@ -196,8 +208,3 @@ class Character(pygame.sprite.DirtySprite):
     else:
       self.collision[direction] = False
 
-""" Define a Hero (Player) Character """
-""" Migrate to a Hero Class """
-class Hero(Character):
-  def __init__(self, name, collidelist):
-    Character.__init__(self, name, collidelist)

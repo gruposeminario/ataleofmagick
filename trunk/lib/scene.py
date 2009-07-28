@@ -62,10 +62,14 @@ class WorldScene(Scene):
     for direction in self.WorldCamera.map_moving:
       self.character_list[0].camera_moving[direction] = self.WorldCamera.map_moving[direction]
 
+   """ Check for Game Messages """
+   
+
    """ Setup the character and map layers """
    self.HeroCharacters  = pygame.sprite.Group(self.character_list)
    self.NPCCharacters   = pygame.sprite.Group(self.npc_list)
    self.Map             = pygame.sprite.Group([self.world_map])
+   self.Message         = pygame.sprite.Group([self.message])
 
    """ If Debug Camera is enabled show the hero's camera """
    if D["camera"] == True:
@@ -77,6 +81,7 @@ class WorldScene(Scene):
    GameLayers.add(self.Map)
    GameLayers.add(self.HeroCharacters)
    GameLayers.add(self.NPCCharacters)
+   GameLayers.add(self.Message)
    GameLayers.update()
    GameRect = GameLayers.draw(self.screen)
    pygame.display.update(GameRect)

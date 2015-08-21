@@ -1,0 +1,1 @@
+Written in Python due to expandability and ease of use.  Using pygame as a framework for the SDL layer.
